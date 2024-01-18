@@ -1,0 +1,35 @@
+###  biallelic, genotyped alternative at least once, not genotyped as reference not even once
+bcftools view ALL.vcf.gz -m2 -M2 -v snps -s ASIAN_SAMPLES/AFRICAN_SAMPLES/ANATOLIAN_SAMPLE -Oz -o ASIAN/AFRICAN/ANATOLIAN.vcf.gz
+bcftools view ASIAN/AFRICAN/ANATOLIAN.vcf.gz -c 1 -e 'GT=="RA"|GT=="RR"' -Oz -o ASIAN/AFRICAN/ANATOLIAN_ALTERNATIVES.vcf.gz
+
+## not genotyped alleles
+bcftools index ASIAN/AFRICAN/ANATOLIAN.vcf.gz
+bcftools view ASIAN/AFRICAN/ANATOLIAN.vcf.gz -C 0 -Ov -o ASIAN/AFRICAN/ANATOLIAN_NOT_GENOTYPED.vcf
+
+## combine alternative alleles to be inserted and not genotyped positions to be masked
+python3 scripts/mask_alt_column.py ASIAN/AFRICAN/ANATOLIAN_NOT_GENOTYPED.vcf ASIAN/AFRICAN/ANATOLIAN_NOT_GENOTYPED_MASKED.vcf
+bcftools view ASIAN/AFRICAN/ANATOLIAN_NOT_GENOTYPED_MASKED.vcf -Oz -o ASIAN/AFRICAN/ANATOLIAN_NOT_GENOTYPED_MASKED.vcf.gz
+/usr/local/sw/bcftools-1.18/bcftools index ASIAN/AFRICAN/ANATOLIAN_NOT_GENOTYPED_MASKED.vcf.gz
+/usr/local/sw/bcftools-1.18/bcftools concat -a ASIAN/AFRICAN/ANATOLIAN_ALTERNATIVES.vcf.gz ASIAN/AFRICAN/ANATOLIAN_NOT_GENOTYPED_MASKED.vcf.gz -Oz -o ASIAN/AFRICAN/ANATOLIAN_ALTERNETIVES_NOT_GENOTYPED_MASKED.vcf.gz
+bcftools index ASIAN/AFRICAN/ANATOLIAN_ALTERNETIVES_NOT_GENOTYPED_MASKED.vcf.gz
+
+## forming consensus masked sequences with alternatives
+cat REFERENCE.fa | vcf-consensus ASIAN/AFRICAN/ANATOLIAN_ALTERNETIVES_NOT_GENOTYPED_MASKED.vcf.gz > ASIAN/AFRICAN/ANATOLIAN_ALTERNETIVES_NOT_GENOTYPED_MASKED.vcf.gz.fa
+gffread -C REFERENCE.gff3 -g asian_alts_notg_masked.vcf.fa -x ASIAN/AFRICAN/ANATOLIAN_ALTERNETIVES_NOT_GENOTYPED_MASKED.vcf.out 
+
+
+## get the same gene sequences for the reference genome
+gffread -C REFERENCE.gff3 -g REFERENCE.fa -x REFERENCE.fa.out
+
+##preparing paml input
+python3 form_ass_nuc_withgff_masked.py
+
+##checking the paml input alignment files for stop codons and triplets
+python3 checknuc_ass.py /PATH/TO/NUC/FILES/
+python3 change_stop_codons.py /PATH/TO/NUC/FILES/TESTED_GENE.nuc TESTED_GENE.nuc
+
+
+##running paml analysis
+
+/paml/bin/codeml codeml_pos.ctl
+/paml/bin/codeml codeml_null.ctl
