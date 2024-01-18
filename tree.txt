@@ -1,0 +1,6 @@
+#donk_tree.txt
+4  1
+
+(((cadirliass:0.73 #1, asianasses:0.85):1.25, africanass:2.84):1.40, horserefer:4.24);
+
+// end of file
